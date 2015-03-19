@@ -3,6 +3,9 @@ if(!defined('ABSPATH'))exit;
 
 function qwc_add_filters_front() {
 
+	remove_filter('get_post_metadata', 'qtranxf_filter_postmeta', 5);
+	add_filter('get_post_metadata', 'qwc_filter_postmeta', 5, 4);
+
 	$use_filters = array(
 		/* do not exist any more */
 		//'option_woocommerce_email_from_name' => 10,
@@ -46,7 +49,10 @@ function qwc_add_filters_front() {
 		'woocommerce_attribute' => 20,
 		'woocommerce_cart_item_name' => 20,
 		'woocommerce_cart_item_thumbnail' => 20,
-		'woocommerce_order_subtotal_to_display' => 20
+		'woocommerce_order_subtotal_to_display' => 20,
+
+		/* four-argument filters */
+		'woocommerce_format_content' => 20,//function wc_format_content in woocommerce/includes/wc-formatting-functions.php
 
 		//not in front
 		//'woocommerce_email_get_option' => 0
@@ -56,11 +62,41 @@ function qwc_add_filters_front() {
 		add_filter( $name, 'qtranxf_useCurrentLanguageIfNotFoundUseDefaultLanguage', $priority );
 	}
 
-	//do not seem to need
+	//below do not seem to need
+
 	//foreach ( $url_filters as $name => $priority ) {
 	//	add_filter( $name, 'qtranxf_convertURL', $priority );
 	//}
+
+	/* Fix the product categories and tags (displayed above the "additional informations" tab) *
+	add_filter( 'wp_get_object_terms', function ( $terms ) {
+		foreach ( $terms as $term ) {
+			if ( $term->taxonomy == 'product_cat' || $term->taxonomy == 'product_tag' ) {
+				$term->name = qtranxf_useCurrentLanguageIfNotFoundUseDefaultLanguage( $term->name );
+			}
+		}
+
+		return $terms;
+	} );
+
+	/* Fix the product attributes (displayed in the "additional informations" tab) *
+	add_filter( 'woocommerce_attribute', function ( $text ) {
+		$values = explode( ', ', $text );
+		foreach ( $values as $i => $val ) {
+			$values[ $i ] = qtranxf_useCurrentLanguageIfNotFoundUseDefaultLanguage( $val );
+		}
+
+		return implode( ', ', $values );
+	} );
+	*/
 }
 qwc_add_filters_front();
 
-?>
+function qwc_filter_postmeta($original_value, $object_id, $meta_key = '', $single = false){
+	//qtranxf_dbg_log_if($object_id==58,'qwc_filter_postmeta: $object_id='.$object_id.' $meta_key:',$meta_key);
+	switch($meta_key){
+		case '_product_attributes':
+			return $original_value;
+		default: return qtranxf_filter_postmeta($original_value, $object_id, $meta_key, $single);
+	}
+}
