@@ -100,3 +100,16 @@ function qwc_filter_postmeta($original_value, $object_id, $meta_key = '', $singl
 		default: return qtranxf_filter_postmeta($original_value, $object_id, $meta_key, $single);
 	}
 }
+
+/**
+ * Store the current WordPress language along with the order, so we know later on which language the customer used while ordering
+ * Called with
+ * do_action( 'woocommerce_checkout_update_order_meta', $order_id, $this->posted );
+ * in /woocommerce/includes/class-wc-checkout.php
+ * @since 1.1
+ */
+add_action( 'woocommerce_checkout_update_order_meta', 'save_post_qwc_store_language', 100 );
+function save_post_qwc_store_language ( $order_id ) {
+	global $q_config;
+	add_post_meta( $order_id, '_user_language', $q_config['language'], true );
+}
